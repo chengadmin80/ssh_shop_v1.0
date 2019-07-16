@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+	http://www.springframework.org/schema/tx
+	http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+	http://www.springframework.org/schema/aop
+	http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-3.0.xsd
+	">
+
+<!-- 注解扫描 -->
+<context:component-scan base-package="cn.it.shop.." />
+<!-- 注解扫描end -->
+	<!-- 
+		1：搭建spring的开发环境
+			1.1：添加配置文件，和相应的spring-3.2-core.jar包
+			1.2：创建date对象，如果成功，spring的环境OK
+			1.3：通过基于spring junit测试实例化Date
+		2：搭建Hibernate的开发环境
+			2.1：添加配置文件，和相应的hibernate3.6.jar和mysql.jar包
+			2.2：分析cn.it.shop.util.HibernateSessionFactory的作用
+			2.3：通过逆向生成model、orm映射文件
+			2.4：创建service,通过new方式执行数据入库，在Jee6中会出现unable to get the default bean validation factory
+				解决方案：在hibernate配置文件中加入：<property name="javax.persistence.validation.mode">none</property>
+		3：spring与hibernate整合(采用aop来管理事务声明式事务）
+			3.1：添加jar包：spring-3.2-aop.jar spring-3.2-persistence.jar c3p0.jar
+			3.2：配置数据源 	
+			3.3：采用LocalSessionFactoryBean取代：HibernateTemplate 因为HibernateTemplate是来自spring,
+				而HibernateTemplate仅仅是直接调用sesion的，只是将session进行了包装，
+				而session是hibernate的接口，我们所用的DAO是属于执久层，也就是hibernate层
+				所以应该用LocalSessionFactoryBean这样在解藕的时候不会因找不到类而报错，
+				在hibernate4中已经取消了HibernateTemplate这个类
+			3.4：配置事务管理器，管理SessionFactory
+			3.5：配置advice(通知)
+			3.6：配置AOP切面表达式
+			3.7：让Service交给Spring管理，并且依赖sessionFactory,如果能插入数据，则说明声明式事务OK
+		4：搭建structs的开发环境
+			4.1：添加配置文件，和相应的hibernate3.6.jar+mysql驱动包，
+			并且在web.xml中添加过滤器：StrutsPrepareAndExecuteFilter
+			4.2：创建Action，并且配置到struts.xml中
+			4.3：通过jsp访问Action，如果Action可以创建，则代表环境OK
+			4.4：默认在没有整合的时候创建Action的工厂为：（sturts）for(com.opensymphony.xwork2.ObjectFactory)
+			
+		5.5：创建spring与sturt整合环境（采用spring来管理action,这样action的依赖就能够注入进来）
+			5.1：加载配置文件，和相应的spring-web.jar 里面就包括struts2-spring-plugin-2.1.6.jar
+			5.2：把action和它的依赖交给spring管理 配置在：/shop/src/applicationContext-action.xml
+			5.3：在struts.xml中class对应的是spring中配置action的id值
+			5.4：在web.xml中配置监听器org.springframework.web.context.ContextLoaderListener，启动的时候加载spring配置文件
+			    (spring) for (com.opensymphony.xwork2.ObjectFactory)
+		
+		6：通过svn管理项目版本
+			6.1：采用link的方式安装myeclipse插件
+			6.2：创建仓库，并设置用户名与密码(服务器才做)
+			6.3：通过插件下载
+	 -->
+	 
+	 
+	 <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+	 	<property name="driverClass" value="com.mysql.jdbc.Driver"></property>
+	 	<property name="jdbcUrl" value="jdbc:mysql://localhost:3306/shop"></property>
+	 	<property name="user" value="root"></property>
+	 	<property name="password" value="root123"></property>
+	 </bean>
+	 
+	 <bean id="sessionFactory" class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+	 	<property name="dataSource" ref="dataSource"></property>
+	 	<property name="configLocation" value="classpath:hibernate.cfg.xml"></property>
+	 </bean>
+	 
+	 <bean id="transactionManager" class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+	 	<property name="sessionFactory" ref="sessionFactory"></property>
+	 </bean>
+	 
+	 <tx:advice id="advice" transaction-manager="transactionManager">
+	 	<tx:attributes>
+	 		<tx:method name="save" propagation="REQUIRED" />
+	 		<tx:method name="update" propagation="REQUIRED" />
+	 		<tx:method name="delete" propagation="REQUIRED" />
+	 		<tx:method name="*" propagation="SUPPORTS" />
+	 	</tx:attributes>
+	 </tx:advice>
+	 
+	 <aop:config>
+	 	<!-- 配置哪些包的类要切入事务 -->
+	 	<aop:pointcut id="pointcut" expression="execution(* cn.it.shop.service.impl.*.*(..))" />
+	 	<!-- 通知+切表表达式，才是完整的切入路径 -->
+	 	<aop:advisor advice-ref="advice" pointcut-ref="pointcut" />
+	 </aop:config>
+	 
+</beans>

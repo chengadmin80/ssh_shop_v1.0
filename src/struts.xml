@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 2.1//EN" "http://struts.apache.org/dtds/struts-2.1.dtd">
+<struts>
+	<!-- 开发模式，在修改struct配置文件的时候不需要重启 -->
+	<constant name="struts.devMode" value="true" />
+	<package name="shop" extends="json-default">
+	
+	<!-- 页面 -->
+	<global-results>
+		<result name="index">/WEB-INF/main/aindex.jsp</result>
+	</global-results>
+		
+		<action name="category_*" class="categoryAction" method="{1}">
+			<result name="index">/index.jsp</result>
+			<!-- 必须先添加json包，然后继承json-default 
+			protected Object findRootObject(ActionInvocation invocation)
+			  {
+			    Object rootObject;
+			    //如果配置root,则把root指定值转化为json格式
+			    if (this.root != null) {
+			      ValueStack stack = invocation.getStack();
+			      rootObject = stack.findValue(this.root);
+			    } else {
+			      //如果没有配置root，则把植栈中栈顶对象转化为json格式
+			      rootObject = invocation.getStack().peek();
+			    }
+			    return rootObject;
+			  }
+			-->
+			<!-- json -->
+			<result name="jsonMap" type="json">
+				<!-- 要转化为json对象的数据 -->
+				<param name="root">pageMap</param>
+				<!-- 配置黑名单，过虑不需要的选项，支持正则表达式
+					\d 一个数字，+ 一个或多个， ? 0或者1， * 1或者多， [ABC]自定义类型，必须是ABC中的一个，. 任一字符
+				 -->
+				<param name="excludeProperties">
+					rows\[\d+\]\.account\.pass,
+					rows\[\d+\]\.account\.name
+				</param>
+			</result>
+			<!-- 流 -->
+			<result name="stream" type="stream">
+				<param name="inputName">inputStream</param>
+			</result>
+		</action>
+
+		<action name="account_*" class="accountAction" method="{1}">
+			<result name="index">/index.jsp</result>
+			<result name="jsonList" type="json">
+				<param name="root">jsonList</param>
+				<param name="excludeProperties">
+					\[\d+\]\.pass,\[\d+\]\.name
+				</param>
+			</result>
+		</action>
+		<!-- 用来完成系统请求转发的action -->
+		<action name="send_*_*" class="sendAction">
+			<result name="send">WEB-INF/{1}/{2}.jsp</result>
+		</action>
+	</package>
+</struts>    

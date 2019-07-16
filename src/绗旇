@@ -1,0 +1,5 @@
+Spring容器
+spring中有一个map用来存放单实例的实例化对象
+
+ActionContext原理：
+servletConfig
